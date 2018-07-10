@@ -15,10 +15,15 @@ Compilation was successful with
 If ITK is installed on a standard library search path, then installation of vascu_synth was easy as
 
   cd (directory containing vascu-synth sources)
+  
   mkdir ../build_vascu_synth
+  
   cd ../build_vascu_synth
+  
   cmake ../(directory containing vascu-synth sources)
+  
   (possibly check ccmake .    to check if everything is ok).
+  
   make
 
 --> VascuSynth binary generated in build_vascu_synth directory.
