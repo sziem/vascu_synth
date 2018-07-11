@@ -44,36 +44,57 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
     write_supply_map("supply.txt", supply_pairs, im_shape)
     print("have written supply.txt") 
 
-    # TODO: play with params to know effects before using random params
-    # currently randomized perf_point, n_term_nodes and demand_map
+    # currently randomized perf_point, n_term_nodes and demand_map, perf_pressure,
+    # term_pressure_divisor
+    np.random.seed(random_seed)
+    # random seeds for vascu_synth (this way they generate new structures even
+    # if other params are constant)
     for i in range(n_samples):
         if i > 0 and random_seed:
-            pass#random_seed+=1
+            random_seed+=1
+        # demand_map
         demand_pairs = generate_random_demand_pairs(
                 im_shape, box_size=box_size, random_seed=random_seed)
         write_demand_map(demand_files[i], demand_pairs, im_shape)
         print("have written",  demand_files[i])
-        # perf_point parameter and n_term_nodes get an extra treatment
-        np.random.seed(random_seed)
+        # perf_point
+        #np.random.seed(random_seed)
         perf_point=(np.random.randint(0, im_shape[0]),
                     np.random.randint(0, im_shape[1]),
                     np.random.randint(0, im_shape[2]))
         if np.max(read_demand_map(demand_pairs, im_shape)) < min_perf_demand:
             raise RuntimeError("demand in the volume is lower than " +
-                               "min_perf_demand everywhere.")    
+                               "min_perf_demand everywhere.")
         while read_demand_map(demand_pairs, im_shape)[perf_point[0], perf_point[1], perf_point[2]] < min_perf_demand:
             perf_point=(np.random.randint(0, im_shape[0]),
                         np.random.randint(0, im_shape[1]),
                         np.random.randint(0, im_shape[2]))
-        np.random.seed(random_seed)
+        # n_term_nodes
+        #np.random.seed(random_seed)
         n_term_nodes=np.random.randint(0, n_term_nodes_max)
         if n_term_nodes > np.prod(im_shape) / 10:
             warn("with the current setting, more than every tenth pixel " +
                  "will become a terminal node.")
+        # perf_pressure
+        perf_pressure_mean= 133000 # µmHg, value from software's example
+        #np.random.seed(random_seed)
+        perf_pressure = np.random.normal(perf_pressure_mean, perf_pressure_mean/6)  # 6-sigma-sure that min is above 0
+        if perf_pressure < perf_pressure_mean/20:  # clip to heuristic minimal value that looks nice (considering other params are const)
+            perf_pressure = perf_pressure_mean/20
+        elif perf_pressure > 20*perf_pressure_mean:  # clip to heuristic maximum value that looks o.k. (considering other params are const)
+            perf_pressure = 20*perf_pressure_mean
+        # term_pressure divisor:
+        # I want an asymmetric pdf with min=1.05, mean ~1.6, max~20 (-> hard to design).
+        #np.random.seed(random_seed)
+        term_pressure_divisor_mean = 2  # > 1.6 because of asymmetric pdf to avoid too many low values
+        divisor_min = 1.05 # must be > 1
+        term_pressure_divisor = np.random.gamma(2, 
+            (term_pressure_divisor_mean - divisor_min)/2) + divisor_min  # purely trial and error to design this
+            
         write_param_file(param_files[i],
-                         perf_point=perf_point,
-                         perf_pressure=133000,
-                         term_pressure_divisor=1.6,
+                         perf_point=perf_point,    # TODO: should be at border
+                         perf_pressure=perf_pressure,     
+                         term_pressure_divisor=term_pressure_divisor,  # Default: 1.6,  exactly 1 does not work; term pressure must be smaller, not equal.  Vary between roughly 1.05 and 100
                          n_term_nodes=n_term_nodes,
                          demand_file_name=demand_files[i],
                          random_seed=random_seed,
@@ -239,7 +260,7 @@ def write_param_file(file_name,
     contents.append("OXYGENATION_MAP: " + demand_file_name)  # separate file
     contents.append("RANDOM_SEED: " + str(random_seed))  # optional.
     contents.append("PERF_POINT: " + arr_to_str(perf_point))  # loc of root
-    contents.append("PERF_PRESSURE: " + str(perf_pressure)) # µmHg
+    contents.append("PERF_PRESSURE: " + str(round(perf_pressure))) # µmHg  # does not need to be int, but int-precision is enough
     contents.append("TERM_PRESSURE: " + str(round(perf_pressure/term_pressure_divisor))) # µmHg, 
     contents.append("PERF_FLOW: " + str(perf_flow)) # m**3/(h*kg)
     contents.append("RHO: " + str(viscosity)) # viscosity in Pa*s 
@@ -325,13 +346,7 @@ def _test():
     import subprocess
     from read_vascular_structures import display_vascular_volume 
     from os import path
-    print("running vascu_synth -- see terminal for info-stream.")
-    # TODO: not sure:  Does this call a new instance every time?
-    # what happens if I stop python program?
-    # Apparently you can stop execution using ctr-c in terminal
-    # (did not stop spyder)
-    subprocess.call(["./VascuSynthPng", "param_files.txt", "image_names.txt", "0.04"])
-    print("done")
+    import os
     
     image_names = np.loadtxt("image_names.txt", dtype=np.str)
     print(image_names)
@@ -345,24 +360,56 @@ def _test():
         #with open("p" + str(i) + ".txt") as f:
         params = np.loadtxt("p" + str(i) + ".txt", dtype=np.str, delimiter='\r\n')
         print(params)
+        
+    # this is run in parallel to below, but running_vascu_synth should 
+    # always be slower
+    for cpath in image_names:  # current_path
+        cpath = path.join(cpath, "original_image")
+        if path.isdir(cpath):
+            print(cpath, "exists. Deleting all files it contains.")
+            # TODO: delete only png-files
+            for the_file in os.listdir(cpath):
+                file_path = os.path.join(cpath, the_file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                except Exception as e:
+                    raise e
+    # this forks a new child process and should block the python program until
+    # it is done, but this does not always work.
+    print("running vascu_synth -- see terminal for info-stream.")
+    print("Note that vascu synth will not complain in case of invalid input but just get stuck.")
+    subprocess.call(["./VascuSynthPng", "param_files.txt", "image_names.txt", "0.04"])
+                    #, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     for imfile in image_names:
-        display_vascular_volume(path.join(imfile, "original_image"))
+        try:
+            display_vascular_volume(path.join(imfile, "original_image"))
+        except ValueError as e:
+            print("vascu synth not done yet.  For some reason subprocess " +
+                  "does not wait for small input shapes.  You need to run " +
+                  "vascu_synth manually and then display_vascular_volume")
+        except Exception as e:
+            raise e
         
 def main():
     seed = 1
     # hyperparams:
-    n_samples = 2
+    # increasing image size and n_term_nodes will increase computational time
+    # per sample significantly
+    n_samples = 3
 #    im_sh = 3 * (100,)  # for square images
-    im_sh = (40, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
-    n_term_nodes_max=100
+    im_sh = (100, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
+    n_term_nodes_max=500  # 
     box_size=20
     generate_config_files(n_samples, im_sh, n_term_nodes_max, box_size, 
                           min_perf_demand=0.1, random_seed=seed)
 
 if __name__ == '__main__':
     main()
-    _test()
+    #_test()  # you need view3d for display-part of test which is in 
+    # another repo (ml_deconv/toolbox/view3d))
+    # or just modify _test routine to your own needs.
     
 
 # %% Old stuff
