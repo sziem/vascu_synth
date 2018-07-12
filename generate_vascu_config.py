@@ -7,11 +7,14 @@ Created on Fri Jun 29 15:06:35 2018
 """
 import numpy as np
 from warnings import warn
+import os
 
 # %%
 # TODO: allow to keep some values constant and randomize others
+# allow to change voxel_size
 def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000, 
-                          box_size=20, min_perf_demand=0.1, random_seed=None):
+                          box_size=20, min_perf_demand=0.1, 
+                          voxel_width = 0.04, random_seed=None):
     """
     n_samples (int): number of config files to generate
     im_shape (tuple): shape in order x, y, z
@@ -98,7 +101,8 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
                          n_term_nodes=n_term_nodes,
                          demand_file_name=demand_files[i],
                          random_seed=random_seed,
-                         supply_file_name="supply.txt")
+                         supply_file_name="supply.txt",
+                         voxel_width=voxel_width)
         print("have written",  param_files[i])
 
 
@@ -176,8 +180,7 @@ def read_demand_pairs_from_file(demand_file):
                                  demand=np.float16(demands[j])))
     return demand_pairs, im_shape
 
-# %% write configurations to files in the right way    
-#TODO: change values below after understanding
+# %% write configurations to files in the right way
 def write_param_file(file_name,
                      perf_point=(0,0,0),
                      perf_pressure=133000,
@@ -339,19 +342,39 @@ def remove_trailing_whitespace(txt_file):
     with open(txt_file, 'w') as f:
         f.write(tmp)
 
+def clear_all_vascu_files(cpath):
+    """cpath for current path"""
+    cpath = os.path.join(cpath, "original_image")
+    if os.path.isdir(cpath):
+        print(cpath, "exists. Deleting all files it contains.")
+        # TODO: delete only png-files
+        for the_file in os.listdir(cpath):
+            file_path = os.path.join(cpath, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                raise e
+
+def run_vascu_synth():
+    # TODO: generalize to arbitrary image_names, param_files, voxel_sizes
+    import subprocess
+    return subprocess.call(["./VascuSynthPng", "param_files.txt", "image_names.txt", "0.04"]) 
+    #, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
 # %% main
 def _test():
+    print("running test: show config and run vascu synth on config")
     # Testing
     # run vascu_synth and load_first image as test
-    import subprocess
     from read_vascular_structures import display_vascular_volume 
-    from os import path
-    import os
     
     image_names = np.loadtxt("image_names.txt", dtype=np.str)
     print(image_names)
     param_files = np.loadtxt("param_files.txt", dtype=np.str)
     print(param_files)
+    if not image_names.shape:  # empty (contains only one element)
+        image_names = [str(image_names),]
     for i in range(len(image_names)):
         #import toolbox.view3d as view3d
 #        demand_pairs, im_shape = read_demand_pairs_from_file("demand" + str(i) + ".txt")
@@ -360,34 +383,29 @@ def _test():
         #with open("p" + str(i) + ".txt") as f:
         params = np.loadtxt("p" + str(i) + ".txt", dtype=np.str, delimiter='\r\n')
         print(params)
-        
     # this is run in parallel to below, but running_vascu_synth should 
     # always be slower
     for cpath in image_names:  # current_path
-        cpath = path.join(cpath, "original_image")
-        if path.isdir(cpath):
-            print(cpath, "exists. Deleting all files it contains.")
-            # TODO: delete only png-files
-            for the_file in os.listdir(cpath):
-                file_path = os.path.join(cpath, the_file)
-                try:
-                    if os.path.isfile(file_path):
-                        os.unlink(file_path)
-                except Exception as e:
-                    raise e
+        clear_all_vascu_files(cpath)
+#    else:
+#        i = 0
+#        image_names = [image_names,]
+#        params = np.loadtxt("p" + str(i) + ".txt", dtype=np.str, delimiter='\r\n')
+#        print(params)
+#        clear_all_vascu_files(str(image_names))
+
     # this forks a new child process and should block the python program until
     # it is done, but this does not always work.
     print("running vascu_synth -- see terminal for info-stream.")
-    print("Note that vascu synth will not complain in case of invalid input but just get stuck.")
-    subprocess.call(["./VascuSynthPng", "param_files.txt", "image_names.txt", "0.04"])
-                    #, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print("Note that vascu synth will take long -- and not complain in case of invalid input but just get stuck.")
+    run_vascu_synth()
 
     for imfile in image_names:
         try:
-            display_vascular_volume(path.join(imfile, "original_image"))
+            display_vascular_volume(os.path.join(imfile, "original_image"))
         except ValueError as e:
             print("vascu synth not done yet.  For some reason subprocess " +
-                  "does not wait for small input shapes.  You need to run " +
+                  "does not wait for some input shapes.  You need to run " +
                   "vascu_synth manually and then display_vascular_volume")
         except Exception as e:
             raise e
@@ -397,19 +415,25 @@ def main():
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly
-    n_samples = 3
+    n_samples = 200
 #    im_sh = 3 * (100,)  # for square images
-    im_sh = (100, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
-    n_term_nodes_max=500  # 
+    # max size is about (1000,1000,100), although increasing box_size can make others possible
+    im_sh = (400, 400, 100)  # x, y, z; shape of image, i.e indices 0...99
+    n_term_nodes_max=1000  # 
     box_size=20
     generate_config_files(n_samples, im_sh, n_term_nodes_max, box_size, 
-                          min_perf_demand=0.1, random_seed=seed)
+                          min_perf_demand=0.1, voxel_width=0.01,
+                          random_seed=seed)
+    # TODO: do I need to decrease voxel_width for larger images?
 
 if __name__ == '__main__':
     main()
-    #_test()  # you need view3d for display-part of test which is in 
-    # another repo (ml_deconv/toolbox/view3d))
+    # you need view3d for display-part of test which is in 
+    # another repo (ml_deconv->toolbox->view3d)
     # or just modify _test routine to your own needs.
+    # due to subprocess not consistently blocking during run of vascu_synth,
+    # it is recommended to run vascu synth externally
+    # _test()
     
 
 # %% Old stuff
