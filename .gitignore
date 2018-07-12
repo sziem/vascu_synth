@@ -1,3 +1,10 @@
+# generated custom config files
+demand*.txt
+p*.txt
+image_names.txt
+param_files.txt
+
+### automatic
 # Prerequisites
 *.d
 
