@@ -49,7 +49,9 @@ To create a test volume using these parameter files, copy them to the same direc
 Note that depending on the configuration, running vascu_synth can take quite long.
 
 # Run with custom configuration:
-A python script is provided, which contains functions that you can use to create your own configuration files.
+A python script (generate_vascu_config) is provided, which contains functions that you can use to create your own configuration files.
+
+A separate python script (read_vascular_structures) will load the entire png-stack and show them in a max_projection_viewer.  This requires the view3d-toolbox from my maximum likelihood deconvolution toolbox, which most users probably will not have.  You can either get it or just omit this function as it is not really necessary.
 
 I found that vascu synth is quite peculiar to its input and I don't understand 100%, why some of the formatting was necessary, but the
 version provided worked for me.
