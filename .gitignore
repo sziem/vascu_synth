@@ -1,8 +1,18 @@
 # generated custom config files
+image*/*
 demand*.txt
 p*.txt
 image_names.txt
 param_files.txt
+supply.txt
+# python cache
+__pycache__/*
+# old stuff I just keep for security
+before_git/*
+# Binaries
+VascuSynthJpg
+VascuSynthPng
+VascuSynth
 
 ### automatic
 # Prerequisites
