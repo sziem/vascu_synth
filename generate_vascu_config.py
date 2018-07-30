@@ -10,8 +10,6 @@ from warnings import warn
 import os
 
 # %%
-# TODO: allow to keep some values constant and randomize others
-# allow to change voxel_size
 def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000, 
                           box_size=20, min_perf_demand=0.1, 
                           voxel_width = 0.04, random_seed=None):
@@ -89,9 +87,9 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
         # term_pressure divisor:
         # I want an asymmetric pdf with min=1.05, mean ~1.6, max~20 (-> hard to design).
         #np.random.seed(random_seed)
-        term_pressure_divisor_mean = 2  # > 1.6 because of asymmetric pdf to avoid too many low values
-        divisor_min = 1.05 # must be > 1
-        term_pressure_divisor = np.random.gamma(2, 
+        term_pressure_divisor_mean = 1.75  # > 1.6 because of asymmetric pdf to avoid too many low values
+        divisor_min = 1.2 # must be > 1
+        term_pressure_divisor = np.random.gamma(1.8, 
             (term_pressure_divisor_mean - divisor_min)/2) + divisor_min  # purely trial and error to design this
             
         write_param_file(param_files[i],
@@ -411,7 +409,8 @@ def _test():
             raise e
         
 def main():
-    seed = 1
+    # TODO: run several in parallel with different random seeds (subprocess)
+    seed = 5  # TODO change
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly
@@ -419,10 +418,10 @@ def main():
 #    im_sh = 3 * (100,)  # for square images
     # max size is about (1000,1000,100), although increasing box_size can make others possible
     im_sh = (400, 400, 100)  # x, y, z; shape of image, i.e indices 0...99
-    n_term_nodes_max=1000  # 
+    n_term_nodes_max=800
     box_size=20
     generate_config_files(n_samples, im_sh, n_term_nodes_max, box_size, 
-                          min_perf_demand=0.1, voxel_width=0.01,
+                          min_perf_demand=0.1, voxel_width=0.02,
                           random_seed=seed)
     # TODO: do I need to decrease voxel_width for larger images?
 

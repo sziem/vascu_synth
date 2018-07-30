@@ -35,7 +35,8 @@ def bundle_h5(impath, filename="file.hdf5"):
         data_file.create_dataset('image_stack', data=im)
 
 def main():
-    path_to_images = path.join("image0", "original_image")
+    subdir = "seed2"
+    path_to_images = path.join(subdir, "image1", "original_image")
     display_vascular_volume(path_to_images)
 #    bundle_h5(path_to_images, filename="image0.hdf5")
 
