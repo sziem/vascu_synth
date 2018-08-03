@@ -16,6 +16,7 @@ VascuSynth
 # generated images
 *.png
 *.h5
+seed*/*
 
 ### automatic
 # Prerequisites
