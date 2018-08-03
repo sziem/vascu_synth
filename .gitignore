@@ -13,6 +13,9 @@ before_git/*
 VascuSynthJpg
 VascuSynthPng
 VascuSynth
+# generated images
+*.png
+*.h5
 
 ### automatic
 # Prerequisites

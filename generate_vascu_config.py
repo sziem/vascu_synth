@@ -35,7 +35,7 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
         param_files.append("p" + str(i) + ".txt")
     
     np.savetxt("image_names.txt", image_names, fmt='%s', newline='\r\n')
-    np.savetxt("param_files.txt", param_files, fmt='%s', newline='\r\n')
+    np.savetxt("image_params.txt", param_files, fmt='%s', newline='\r\n')
     remove_trailing_whitespace("param_files.txt")
     print("have written image_names.txt and image_param_files.txt")    
 
@@ -410,18 +410,18 @@ def _test():
         
 def main():
     # TODO: run several in parallel with different random seeds (subprocess)
-    seed = 5  # TODO change
+    seed = 6  # TODO change
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly
     n_samples = 200
 #    im_sh = 3 * (100,)  # for square images
     # max size is about (1000,1000,100), although increasing box_size can make others possible
-    im_sh = (400, 400, 100)  # x, y, z; shape of image, i.e indices 0...99
-    n_term_nodes_max=800
+    im_sh = (400, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
+    n_term_nodes_max=500
     box_size=20
     generate_config_files(n_samples, im_sh, n_term_nodes_max, box_size, 
-                          min_perf_demand=0.1, voxel_width=0.02,
+                          min_perf_demand=0.1, voxel_width=0.03,
                           random_seed=seed)
     # TODO: do I need to decrease voxel_width for larger images?
 
