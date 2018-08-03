@@ -74,7 +74,11 @@ for i = 1:numel(subdirs)
     obj4 = shiftdim(obj4, 1);
 %     size(obj1);
 
-%     % subsample along z  --> do later!
+    % subsample along z
+    obj1 = subsample(obj1, [1 1 4]);
+    obj2 = subsample(obj2, [1 1 4]);
+    obj3 = subsample(obj3, [1 1 4]);
+    obj4 = subsample(obj4, [1 1 4]);
 %     obj1 = obj1(:,:,0:4:end);
 %     obj2 = obj2(:,:,0:4:end);
 %     obj3 = obj3(:,:,0:4:end);
@@ -93,8 +97,8 @@ for i = 1:numel(subdirs)
         % above and is only used during psf-generation
         % TODO: oversamp in z might not be necessary
         Method = 'RichardsWolffInt';
-        oversampXY=4;
-        oversampZ=4;
+        oversampXY=16;
+        oversampZ=oversampXY/2;
         oversize=[size(obj1,1)*oversampXY, size(obj1,2)*oversampXY, size(obj1,3)*oversampZ];
         ImageParam = struct('Sampling',[scaleXY/oversampXY scaleXY/oversampXY scaleZ/oversampZ], ...
                             'Size',oversize);
@@ -120,17 +124,15 @@ for i = 1:numel(subdirs)
     
     % subsample along z  --> TODO: or subsample first and then perform
     % imaging?
-    obj1 = obj1(:,:,0:4:end);
-    obj2 = obj2(:,:,0:4:end);
-    obj3 = obj3(:,:,0:4:end);
-    obj4 = obj4(:,:,0:4:end);
-    
-    im1 = im1(:,:,0:4:end);
-    im2 = im2(:,:,0:4:end);
-    im3 = im3(:,:,0:4:end);
-    im4 = im4(:,:,0:4:end);
-    
-    break
+%     obj1 = obj1(:,:,0:4:end);
+%     obj2 = obj2(:,:,0:4:end);
+%     obj3 = obj3(:,:,0:4:end);
+%     obj4 = obj4(:,:,0:4:end);
+%     
+%     im1 = im1(:,:,0:4:end);
+%     im2 = im2(:,:,0:4:end);
+%     im3 = im3(:,:,0:4:end);
+%     im4 = im4(:,:,0:4:end);
     
     % make ready for storing
     if usecuda
