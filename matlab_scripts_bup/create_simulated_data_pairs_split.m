@@ -2,6 +2,9 @@
 % put this script into the dataset folder, adjust params and run it
 
 % TODO: view psf/otf
+% TODO: view fourier spectrum of obj
+% TODO: apply low pass before subsampling in z to avoid aliasing
+% TODO: maintain this script for generation and use files in structure only for specifying paths
 
 %% Set Parameters
 bgr_photons = 10;
@@ -75,6 +78,9 @@ for i = 1:numel(subdirs)
 %     size(obj1);
 
     % subsample along z
+	% must apply low-pass first to avoid aliasing
+	% TODO: Test if dip_image does that
+	
     obj1 = subsample(obj1, [1 1 4]);
     obj2 = subsample(obj2, [1 1 4]);
     obj3 = subsample(obj3, [1 1 4]);
@@ -223,5 +229,15 @@ function image_stack = stack_all_pngs(path)
         image_stack(:, :, ii-1) = current_image;
     end
 end
-    
+
+function filter = butterworth3d(size)
+	
+end
+
+function im_out = low_pass(im)
+	im_ft = ft(im)
+	
+end
+
+
     
