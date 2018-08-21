@@ -17,6 +17,7 @@ VascuSynth
 *.png
 *.h5
 seed*/*
+CHANGE_NAME/
 
 ### automatic
 # Prerequisites
