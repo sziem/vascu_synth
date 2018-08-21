@@ -36,8 +36,8 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
     
     np.savetxt("image_names.txt", image_names, fmt='%s', newline='\r\n')
     np.savetxt("image_params.txt", param_files, fmt='%s', newline='\r\n')
-    remove_trailing_whitespace("param_files.txt")
-    print("have written image_names.txt and image_param_files.txt")    
+    remove_trailing_whitespace("image_params.txt")
+    print("have written image_names.txt and image_params.txt")    
 
     # provide supply map (how existing supply impacts demand).
     # Since I am not sure how to use it, it is the same for all structures.
@@ -410,7 +410,7 @@ def _test():
         
 def main():
     # TODO: run several in parallel with different random seeds (subprocess)
-    seed = 6  # TODO change
+    seed = 8  # TODO change
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly

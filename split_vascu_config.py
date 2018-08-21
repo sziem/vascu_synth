@@ -18,8 +18,8 @@ def split_vascu_params(vascu_path, image_names="image_names.txt", image_params="
     names_list = _split_txt_into_subfiles(image_names, vascu_path, 10)
     param_list = _split_txt_into_subfiles(image_params, vascu_path, 10)
 
-    np.savetxt(vascu_path + "_params_split", names_list, fmt='%s')
-    np.savetxt(vascu_path + "_names_split", param_list, fmt='%s')
+    np.savetxt(os.path.join(vascu_path, "image_params_all_splits"), param_list, fmt='%s')
+    np.savetxt(os.path.join(vascu_path, "image_names_all_splits"), names_list, fmt='%s')
     
 def _split_txt_into_subfiles(filename, filepath, lines_per_file):
     full_path = os.path.join(filepath, filename)
@@ -31,7 +31,7 @@ def _split_txt_into_subfiles(filename, filepath, lines_per_file):
             if lineno % lines_per_file == 0:
                 if smallfile:
                     smallfile.close()
-                small_filename = filename[0:-4] + "_split{}.txt".format(lineno + lines_per_file)
+                small_filename = os.path.join(filepath, filename[0:-4] + "_split{}.txt".format(lineno + lines_per_file))
                 file_list.append(small_filename)
                 smallfile = open(small_filename, "w")
             smallfile.write(line)
@@ -40,7 +40,7 @@ def _split_txt_into_subfiles(filename, filepath, lines_per_file):
     return file_list
 
 def main():
-    vascu_path = "seed6"  # TODO: change
+    vascu_path = "CHANGE_NAME"  # TODO: change
     split_vascu_params(vascu_path)
 
 if __name__ == '__main__':
