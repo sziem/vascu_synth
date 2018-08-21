@@ -7,18 +7,19 @@
 % TODO: view psf/otf
 % TODO: view fourier spectrum of obj
 % TODO: maintain this script for generation and specify paths
+% TODO: save tiff instead of mat
 
 %% Set Parameters
 % seed2: 200 png-image-stacks of size 400x400x100
 % seed3: 120 png-image-stacks of size 400x400x100
 % seed4: 200 png-image-stacks of size 400x400x100
 % seed5: 200 png-image-stacks of size 400x400x100
-% --> use creat_simulated_data_pairs_split.m
+% --> use create_simulated_data_pairs_split.m
 % --> some might be badly constructed, although they should be okay
 
 % -------
 % seed6 and above: 200 png-images-stacks of size 400x100x100
-% --> use creat_simulated_data_pairs.m
+% --> use create_simulated_data_pairs.m
 
 impath = '/home/soenke/code/vascu_synth/seed2';
 target_path = impath; % consider moving this to data-HD right away
@@ -50,7 +51,7 @@ oversampling_factor = 2;
 % vascu_synth pixel size: 20 µm squared --> redefine it to scaleZ_ny/2
 % --> also subsample z by factor 4
 
-%% calculate input to GenericPSFSim and run a simple test
+%% calculate input to GenericPSFSim and run a simple check for sampling
 scaleXY_ny = floor(wl / (4*na));
 scaleZ_ny = floor(wl / (2*ri*(1-cos(asin(na/ri)))));
 
@@ -140,12 +141,18 @@ for i = 1:numel(subdirs)
         psf = psf(0:oversampXY:end, 0:oversampXY:end, 0:oversampZ:end);
         psf = psf / sum(psf);
         
-        psf_subsam = psf(:,:,0:4:end);
+        % This probably does not work just like this would it?
+        % it could be better to generate 2 psfs for both samplings?
+        % psf_subsam = psf(:,:,0:4:end);  
+        
         if usecuda
-            psf_subsam = ConditionalCudaConvert(psf_subsam, 0);
+            psf = ConditionalCudaConvert(psf, 0);
+            % psf_subsam = ConditionalCudaConvert(psf_subsam, 0);
         end
-%         disp(sum(psf))
-%         disp(max(psf))
+        
+        % checks: sum should be 1
+        % disp(sum(psf))
+        % disp(max(psf))
     end
     
     % perform imaging
@@ -195,17 +202,17 @@ for i = 1:numel(subdirs)
     im3 = uint8(round(im3));
     im4 = uint8(round(im4));
     
-%      objs = dip_image(cat(1, obj1, obj2, obj3, obj4));
-%      ims = dip_image(cat(1, im1, im2, im3, im4));
-%      cat(4, objs, ims)
-%      dip_image(psf)
+    % objs = dip_image(cat(1, obj1, obj2, obj3, obj4));
+    % ims = dip_image(cat(1, im1, im2, im3, im4));
+    % cat(4, objs, ims)
+    % dip_image(psf)
     
     %% save as mat-files
     id = strcat('num_photons', num2str(max_photons), '_', ...
                 'bgr', num2str(bgr_photons), '_', padding);
     psf_id = strcat('na', num2str(na), '_ri', num2str(ri), ...
                     '_scaleXY', num2str(scaleXY), '_scaleZ', num2str(scaleZ));
-    savedir = strcat(target_path, 'simulated_data_pairs/', 'poisson/', ...
+    savedir = strcat(target_path, '/simulated_data_pairs/', 'poisson/', ...
                      id, '/', psf_id, '/', sd, '/');
 
     if ~exist(savedir, 'dir')
@@ -214,7 +221,7 @@ for i = 1:numel(subdirs)
     
     if (i == 1)
         save(strcat(savedir,'psf'), 'psf', '-v7')
-        save(strcat(savedir,'psf_subsam'), 'psf_subsam', '-v7')
+        % save(strcat(savedir,'psf_subsam'), 'psf_subsam', '-v7')
     end
     save(strcat(savedir,'obj1'), 'obj1', '-v7')
     save(strcat(savedir,'obj2'), 'obj2', '-v7')
