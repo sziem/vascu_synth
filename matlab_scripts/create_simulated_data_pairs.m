@@ -81,10 +81,7 @@ for i = 1:numel(subdirs)
     % [obj, info] = ReadData3D(strcat(path, '/', fname), false);
     obj = stack_all_pngs(path);
     obj = obj ./max(obj) * 255;
-    
-    % DBG: for testing: get 400x100x100 obj
-    obj = obj(:, 0:99, :);
-%   size(obj);
+    %   size(obj);
     
     % shift x to z
     obj = shiftdim(obj, 1); % shift x to z
