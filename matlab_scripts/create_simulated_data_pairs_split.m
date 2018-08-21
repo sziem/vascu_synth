@@ -1,16 +1,33 @@
 % instructions:
-% put this script into the dataset folder, adjust params and run it
+% change impath to folder containing image*-folders.
+% Adjust params if desired
+% run script
+% NOTE: matlab needs ~3GB on HD to save khoros's config for PSF generation!
 
 % TODO: view psf/otf
 % TODO: view fourier spectrum of obj
-% TODO: apply low pass before subsampling in z to avoid aliasing
-% TODO: maintain this script for generation and use files in structure only for specifying paths
+% TODO: maintain this script for generation and specify paths
 
 %% Set Parameters
+% seed2: 200 png-image-stacks of size 400x400x100
+% seed3: 120 png-image-stacks of size 400x400x100
+% seed4: 200 png-image-stacks of size 400x400x100
+% seed5: 200 png-image-stacks of size 400x400x100
+% --> use creat_simulated_data_pairs_split.m
+% --> some might be badly constructed, although they should be okay
+
+% -------
+% seed6 and above: 200 png-images-stacks of size 400x100x100
+% --> use creat_simulated_data_pairs.m
+
+impath = '/home/soenke/code/vascu_synth/seed2';
+target_path = impath; % consider moving this to data-HD right away
 bgr_photons = 10;
-max_photons = 10000;  % high value: high noise; high SNR
+max_photons = 10000;  % high value: high variance of noise, but also high SNR
 padding = 'same';  % border is largely ignored by unet, so padding is not THAT important
 
+
+%% Parameters 2 (only change if you know what you are doing)
 na = 1.064;  % at about 1.064, scaleXY/4 ~ scaleZ_ny/2
 ri = 1.33;  % water
 wl = 520;  % nm (emission)
@@ -21,7 +38,7 @@ wl = 520;  % nm (emission)
 % in z, this may not always be feasable
 oversampling_factor = 2;
 
-% SAMPLING:
+% SAMPLING:  --> switched to calculating it myself
 % https://svi.nl/NyquistCalculator
 % critical sampling for na=1.3, ri=1.33, wl=520
 % x: 100 nm, y: 100 nm, z: 254 nm
@@ -30,9 +47,10 @@ oversampling_factor = 2;
 % critical sampling for na=0.5, ri=1.33, wl=520:
 % x: 260 nm, y: 260 nm, z: 2682 nm
 
-% vascu_synth pixel size: 20 µm squared 
-% --> subsampling z by factor 4
+% vascu_synth pixel size: 20 µm squared --> redefine it to scaleZ_ny/2
+% --> also subsample z by factor 4
 
+%% calculate input to GenericPSFSim and run a simple test
 scaleXY_ny = floor(wl / (4*na));
 scaleZ_ny = floor(wl / (2*ri*(1-cos(asin(na/ri)))));
 
@@ -47,10 +65,12 @@ if scaleZ > scaleZ_ny/2
         error('current scaleZ leads to undersampling')
     end
 end
-% scaleZ = scaleXY;  % in case of isotropic sampling
+
+% scaleZ = scaleXY;  % only in case of isotropic sampling (with original 
+                     % vascu structures and no subsampling in z)
 
 %% Load and process obj
-impath = strcat(pwd, '/', 'original_images');
+%impath = strcat(base_path, '/', 'original_images');
 subdirs = get_subdirs(impath);
 for i = 1:numel(subdirs)
     sd = subdirs{i}; % image0 ... image99
@@ -61,9 +81,9 @@ for i = 1:numel(subdirs)
     obj = stack_all_pngs(path);
     obj = obj ./max(obj) * 255;
     
-    % 400x400x100 objs don't fit in gpu-memory: 
+    % 400x400x100 objs don't fit in gpu-memory (together with unet-weights):
+    % also, 100x400x100 after subsampling would not fit
     % split into four 400x100x100 objs
-    % TODO: do as loop
     obj1 = obj(:, 0:99, :);
     obj2 = obj(:, 100:199, :);
     obj3 = obj(:, 200:299, :);
@@ -78,18 +98,24 @@ for i = 1:numel(subdirs)
 %     size(obj1);
 
     % subsample along z
-	% must apply low-pass first to avoid aliasing
-	% TODO: Test if dip_image does that
-	
-    obj1 = subsample(obj1, [1 1 4]);
-    obj2 = subsample(obj2, [1 1 4]);
-    obj3 = subsample(obj3, [1 1 4]);
-    obj4 = subsample(obj4, [1 1 4]);
-%     obj1 = obj1(:,:,0:4:end);
-%     obj2 = obj2(:,:,0:4:end);
-%     obj3 = obj3(:,:,0:4:end);
-%     obj4 = obj4(:,:,0:4:end);
-
+    % my own function filtered_subsample applies low-pass before
+    % subsampling to avoid aliasing
+    obj1 = filtered_subsample1d(obj1, 4, 3);
+    obj2 = filtered_subsample1d(obj2, 4, 3);
+    obj3 = filtered_subsample1d(obj3, 4, 3);
+    obj4 = filtered_subsample1d(obj4, 4, 3);
+%     size(obj1)
+    
+    % TODO it is currently not possible to call 
+      % obj1 = filtered_subsample(obj1, [1 1 4]);
+    % in analogy with dip_image's subsample function.
+      
+    % NOTE: dip_image's 
+      % subsample(obj1, [1 1 4]) 
+    % is equivalent to 
+      % obj1 = obj1(:,:,0:4:end);
+    % and will lead to aliasing
+      
     % create psf
     if (i == 1)
 %         if strcmp(padding, 'full') + strcmp(padding, 'same')
@@ -103,7 +129,7 @@ for i = 1:numel(subdirs)
         % above and is only used during psf-generation
         % TODO: oversamp in z might not be necessary
         Method = 'RichardsWolffInt';
-        oversampXY=16;
+        oversampXY=12;
         oversampZ=oversampXY/2;
         oversize=[size(obj1,1)*oversampXY, size(obj1,2)*oversampXY, size(obj1,3)*oversampZ];
         ImageParam = struct('Sampling',[scaleXY/oversampXY scaleXY/oversampXY scaleZ/oversampZ], ...
@@ -128,8 +154,10 @@ for i = 1:numel(subdirs)
     im3 = simulate_wf_imaging_poisson(obj3, psf, max_photons, bgr_photons, padding);
     im4 = simulate_wf_imaging_poisson(obj4, psf, max_photons, bgr_photons, padding);
     
-    % subsample along z  --> TODO: or subsample first and then perform
-    % imaging?
+    % --> TODO: why not image first and then subsample?
+    % there was some reason, but I don't remember
+    % could solve aliasing problem
+
 %     obj1 = obj1(:,:,0:4:end);
 %     obj2 = obj2(:,:,0:4:end);
 %     obj3 = obj3(:,:,0:4:end);
@@ -153,7 +181,7 @@ for i = 1:numel(subdirs)
     end
     
     % reduce storage size  -> binaries will be saved!
-    % TODO: save tiff
+    % TODO: save tiff instead of mat
     % TODO: check if really 0...255
     % --> should be the case.  objs are rescaled above, ims are rescaled in
     % simulate_wf_imaging_poisson
@@ -177,8 +205,8 @@ for i = 1:numel(subdirs)
                 'bgr', num2str(bgr_photons), '_', padding);
     psf_id = strcat('na', num2str(na), '_ri', num2str(ri), ...
                     '_scaleXY', num2str(scaleXY), '_scaleZ', num2str(scaleZ));
-    savedir = strcat('simulated_data_pairs/', 'poisson/', id, '/', ...
-                     psf_id, '/', sd, '/');
+    savedir = strcat(target_path, 'simulated_data_pairs/', 'poisson/', ...
+                     id, '/', psf_id, '/', sd, '/');
 
     if ~exist(savedir, 'dir')
         mkdir(savedir)
@@ -211,7 +239,7 @@ function subdirs = get_subdirs(path)
 end
 
 function fname = get_mhd(path)
-    f = dir(fullfile(path, '*.mhd'))
+    f = dir(fullfile(path, '*.mhd'));
     fname = f.name;
 end
 
@@ -229,15 +257,3 @@ function image_stack = stack_all_pngs(path)
         image_stack(:, :, ii-1) = current_image;
     end
 end
-
-function filter = butterworth3d(size)
-	
-end
-
-function im_out = low_pass(im)
-	im_ft = ft(im)
-	
-end
-
-
-    
