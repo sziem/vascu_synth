@@ -7,15 +7,15 @@
 CHANGE_NAME=CHANGE_NAME &&
 
 # this should include 
-mkdir -p $CHANGE_NAME &&
-mv *.txt $CHANGE_NAME;  # TODO: make arg to shell function
+mkdir -p $CHANGE_NAME/original_data &&
+mv *.txt $CHANGE_NAME/original_data;  # TODO: make arg to shell function
 # this should include image_params.txt, image_names.txt, supply.txt, all demands and all param files
 
-cp run_sequential_*.sh $CHANGE_NAME &&
-cp VascuSynthPng $CHANGE_NAME &&  # TODO: change so that I don't need several copies of it
+cp run_sequential_*.sh $CHANGE_NAME/original_data &&
+cp VascuSynthPng $CHANGE_NAME/original_data &&  # TODO: change so that I don't need several copies of it
 python split_vascu_config.py &&
-cp *.txt $CHANGE_NAME;  # not sure this is necessary here
-cd $CHANGE_NAME &&
+cp *.txt $CHANGE_NAME/original_data;  # not sure this is necessary here
+cd $CHANGE_NAME/original_data &&
 
 screen -dmS "vascu1" &&
 screen -dmS "vascu2" &&

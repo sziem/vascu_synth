@@ -410,7 +410,7 @@ def _test():
         
 def main():
     # TODO: run several in parallel with different random seeds (subprocess)
-    seed = 8  # TODO change
+    seed = 9  # TODO change
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly

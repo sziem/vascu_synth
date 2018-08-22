@@ -40,7 +40,7 @@ def _split_txt_into_subfiles(filename, filepath, lines_per_file):
     return file_list
 
 def main():
-    vascu_path = "CHANGE_NAME"  # TODO: change
+    vascu_path = os.path.join("CHANGE_NAME","original_data")  # TODO: change
     split_vascu_params(vascu_path)
 
 if __name__ == '__main__':

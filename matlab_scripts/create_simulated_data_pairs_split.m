@@ -6,11 +6,14 @@
 
 % TODO: view psf/otf
 % TODO: view fourier spectrum of obj
-% TODO: maintain this script for generation and specify paths
 % TODO: save tiff instead of mat
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: change file w/O split to correspond
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Set Parameters
-% seed2: 200 png-image-stacks of size 400x400x100
+% seed2: 200 png-image-stacks of size 400x400x100  (4 are faulty 117, 118, 119, 187)
 % seed3: 120 png-image-stacks of size 400x400x100
 % seed4: 200 png-image-stacks of size 400x400x100
 % seed5: 200 png-image-stacks of size 400x400x100
@@ -21,8 +24,8 @@
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
 
-impath = '/home/soenke/code/vascu_synth/seed2';
-target_path = impath; % consider moving this to data-HD right away
+base_path = '/home/soenke/code/vascu_synth/seed3';
+target_path = base_path; % consider moving this to data-HD right away
 bgr_photons = 10;
 max_photons = 10000;  % high value: high variance of noise, but also high SNR
 padding = 'same';  % border is largely ignored by unet, so padding is not THAT important
@@ -71,15 +74,15 @@ end
                      % vascu structures and no subsampling in z)
 
 %% Load and process obj
-%impath = strcat(base_path, '/', 'original_images');
-subdirs = get_subdirs(impath);
-for i = 1:numel(subdirs)
+source_path = strcat(base_path, '/original_data');
+subdirs = get_subdirs(source_path);
+for i = 1:numel(subdirs)  % problem with 117 and 118
     sd = subdirs{i}; % image0 ... image99
-    path = strcat(impath, '/', sd, '/original_image/');
+    impath = strcat(source_path, '/', sd, '/original_image/');
     
     % Load Object
     % [obj, info] = ReadData3D(strcat(path, '/', fname), false);
-    obj = stack_all_pngs(path);
+    obj = stack_all_pngs(impath);
     obj = obj ./max(obj) * 255;
     
     % 400x400x100 objs don't fit in gpu-memory (together with unet-weights):
@@ -212,25 +215,25 @@ for i = 1:numel(subdirs)
                 'bgr', num2str(bgr_photons), '_', padding);
     psf_id = strcat('na', num2str(na), '_ri', num2str(ri), ...
                     '_scaleXY', num2str(scaleXY), '_scaleZ', num2str(scaleZ));
-    savedir = strcat(target_path, '/simulated_data_pairs/', 'poisson/', ...
+    save_path = strcat(target_path, '/simulated_data_pairs/', 'poisson/', ...
                      id, '/', psf_id, '/', sd, '/');
 
-    if ~exist(savedir, 'dir')
-        mkdir(savedir)
+    if ~exist(save_path, 'dir')
+        mkdir(save_path)
     end
     
     if (i == 1)
-        save(strcat(savedir,'psf'), 'psf', '-v7')
+        save(strcat(save_path,'psf'), 'psf', '-v7')
         % save(strcat(savedir,'psf_subsam'), 'psf_subsam', '-v7')
     end
-    save(strcat(savedir,'obj1'), 'obj1', '-v7')
-    save(strcat(savedir,'obj2'), 'obj2', '-v7')
-    save(strcat(savedir,'obj3'), 'obj3', '-v7')
-    save(strcat(savedir,'obj4'), 'obj4', '-v7')
-    save(strcat(savedir,'im1'),  'im1', '-v7')
-    save(strcat(savedir,'im2'),  'im2', '-v7')
-    save(strcat(savedir,'im3'),  'im3', '-v7')
-    save(strcat(savedir,'im4'),  'im4', '-v7')
+    save(strcat(save_path,'obj1'), 'obj1', '-v7')
+    save(strcat(save_path,'obj2'), 'obj2', '-v7')
+    save(strcat(save_path,'obj3'), 'obj3', '-v7')
+    save(strcat(save_path,'obj4'), 'obj4', '-v7')
+    save(strcat(save_path,'im1'),  'im1', '-v7')
+    save(strcat(save_path,'im2'),  'im2', '-v7')
+    save(strcat(save_path,'im3'),  'im3', '-v7')
+    save(strcat(save_path,'im4'),  'im4', '-v7')
     disp(strcat(num2str(i), '/', num2str(numel(subdirs))))
 end
 
