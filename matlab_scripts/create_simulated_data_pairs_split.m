@@ -3,20 +3,18 @@
 % Adjust params if desired
 % run script
 % NOTE: matlab needs ~3GB on HD to save khoros's config for PSF generation!
+% NOTE: fails if a section of the image is zero
+% TODO: catch that case
 
 % TODO: view psf/otf
 % TODO: view fourier spectrum of obj
 % TODO: save tiff instead of mat
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: change file w/O split to correspond
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %% Set Parameters
-% seed2: 200 png-image-stacks of size 400x400x100  (4 are faulty 117, 118, 119, 187)
-% seed3: 120 png-image-stacks of size 400x400x100
-% seed4: 200 png-image-stacks of size 400x400x100
-% seed5: 200 png-image-stacks of size 400x400x100
+% seed2: 197 png-image-stacks of size 400x400x100  (3 are faulty 24, 25, 87)  --> indices 117, 118, 187
+% seed3: 120 png-image-stacks of size 400x400x100  (1 is faulty 86) --> index 107
+% seed4: 200 png-image-stacks of size 400x400x100 (1 is equal to just zero: #85) --> index 186
+% seed5: 200 png-image-stacks of size 400x400x100 (1 is equal to just zero: #84) --> index 185
 % --> use create_simulated_data_pairs_split.m
 % --> some might be badly constructed, although they should be okay
 
@@ -24,7 +22,7 @@
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
 
-base_path = '/home/soenke/code/vascu_synth/seed3';
+base_path = '/home/soenke/code/vascu_synth/seed4';
 target_path = base_path; % consider moving this to data-HD right away
 bgr_photons = 10;
 max_photons = 10000;  % high value: high variance of noise, but also high SNR
@@ -76,8 +74,8 @@ end
 %% Load and process obj
 source_path = strcat(base_path, '/original_data');
 subdirs = get_subdirs(source_path);
-for i = 1:numel(subdirs)  % problem with 117 and 118
-    sd = subdirs{i}; % image0 ... image99
+for i = 1:numel(subdirs)  % sorted by 1 10 100 11 12 etc.
+    sd = subdirs{i}; % image0 ... image199
     impath = strcat(source_path, '/', sd, '/original_image/');
     
     % Load Object
@@ -92,24 +90,67 @@ for i = 1:numel(subdirs)  % problem with 117 and 118
     obj2 = obj(:, 100:199, :);
     obj3 = obj(:, 200:299, :);
     obj4 = obj(:, 300:399, :);
-%     size(obj1);
     
     % shift x to z
     obj1 = shiftdim(obj1, 1); % shift x to z
     obj2 = shiftdim(obj2, 1);
     obj3 = shiftdim(obj3, 1);
     obj4 = shiftdim(obj4, 1);
-%     size(obj1);
-
+    % size(obj1);
+    
     % subsample along z
     % my own function filtered_subsample applies low-pass before
-    % subsampling to avoid aliasing
-    obj1 = filtered_subsample1d(obj1, 4, 3);
-    obj2 = filtered_subsample1d(obj2, 4, 3);
-    obj3 = filtered_subsample1d(obj3, 4, 3);
-    obj4 = filtered_subsample1d(obj4, 4, 3);
-%     size(obj1)
+    % subsampling to avoid aliasing.
     
+    % This fails in case image is constant zero (Might happen if by chance
+    % one region of the image does not receive any nodes)
+    % TODO: warning not shown??
+    try
+        obj1 = filtered_subsample1d(obj1, 4, 3);
+    catch ME
+        if (max(obj1) == 0)
+            warning('obj1 is constant zero')
+            obj1 = subsample(obj1, [1 1 4]);
+        else
+            rethrow ME
+        end
+    end
+    try
+        obj2 = filtered_subsample1d(obj2, 4, 3);
+    catch ME
+        if (max(obj2) == 0)
+            warning('obj2 is constant zero')
+            obj2 = subsample(obj2, [1 1 4]);
+        else
+            rethrow ME
+        end
+    end
+    try
+        obj3 = filtered_subsample1d(obj3, 4, 3);
+    catch ME
+        if (max(obj3) == 0)
+            warning('obj3 is constant zero')
+            obj3 = subsample(obj3, [1 1 4]);
+        else
+            rethrow ME
+        end
+    end
+    try
+        obj4 = filtered_subsample1d(obj4, 4, 3);
+    catch ME
+        if (max(obj4) == 0)
+            warning('obj4 is constant zero')
+            obj4 = subsample(obj4, [1 1 4]);
+        else
+            rethrow ME
+        end
+    end
+    % obj1 = filtered_subsample1d(obj1, 4, 3);
+    % obj2 = filtered_subsample1d(obj2, 4, 3);
+    % obj3 = filtered_subsample1d(obj3, 4, 3);
+    % obj4 = filtered_subsample1d(obj4, 4, 3); 
+    % size(obj1);
+
     % TODO it is currently not possible to call 
       % obj1 = filtered_subsample(obj1, [1 1 4]);
     % in analogy with dip_image's subsample function.
@@ -226,6 +267,7 @@ for i = 1:numel(subdirs)  % problem with 117 and 118
         save(strcat(save_path,'psf'), 'psf', '-v7')
         % save(strcat(savedir,'psf_subsam'), 'psf_subsam', '-v7')
     end
+    % disp(save_path)
     save(strcat(save_path,'obj1'), 'obj1', '-v7')
     save(strcat(save_path,'obj2'), 'obj2', '-v7')
     save(strcat(save_path,'obj3'), 'obj3', '-v7')

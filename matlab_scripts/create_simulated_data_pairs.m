@@ -10,7 +10,7 @@
 % TODO: save tiff instead of mat
 
 %% Set Parameters
-% seed2: 200 png-image-stacks of size 400x400x100
+% seed2: 197 png-image-stacks of size 400x400x100 (3 are faulty 24, 25, 87)  % --> indices 117, 118, 187
 % seed3: 120 png-image-stacks of size 400x400x100
 % seed4: 200 png-image-stacks of size 400x400x100
 % seed5: 200 png-image-stacks of size 400x400x100
@@ -20,7 +20,7 @@
 % -------
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
-base_path = '/home/soenke/code/vascu_synth/seed6';
+base_path = '/home/soenke/code/vascu_synth/seed8';
 target_path = base_path; % consider moving this to data-HD right away
 bgr_photons = 10;
 max_photons = 10000;  % high value: high variance of noise, but also high SNR
