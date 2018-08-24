@@ -1,6 +1,8 @@
-Recommended pipeline for dataset generation:
+New recommended pipeline for object generation:
+1. run ./generate_dataset.sh SEED N_IMAGES(200 by default)
+--> continue with step 6 and 7
 
-
+Old pipeline for dataset generation:
 1. change seed (and possibly other parameters) in generate_vascu_config.py
 2. run generate_vascu_config.py
 3. run split_and_run.sh
@@ -8,5 +10,4 @@ Recommended pipeline for dataset generation:
 5. rename CHANGE_NAME-folder, eg. to the number of the random seed used
 
 6. run matlab_scripts/create_simulated_data_pairs.m to generate pairs of ground truth samples (obj) and simulated microscopic images (img)
-
 7. to create the h5 dataset that can be input to unet, run generate_h5.py from unet_deconv repository on the data pairs

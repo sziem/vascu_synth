@@ -8,6 +8,7 @@ Created on Thu Aug  2 10:31:06 2018
 
 import numpy as np
 import os
+import sys
 
 """
 counteract memory leak of vascu_synth by using smaller image_lists and 
@@ -40,7 +41,13 @@ def _split_txt_into_subfiles(filename, filepath, lines_per_file):
     return file_list
 
 def main():
-    vascu_path = os.path.join("CHANGE_NAME","original_data")  # TODO: change
+    # usage: python split_vascu_config.py FOLDER_NAME from the command line.
+    # Default folder_name is "CHANGE_NAME"
+    try:
+        folder_name = sys.argv[1]
+    except IndexError as e:
+        folder_name = "CHANGE_NAME"
+    vascu_path = os.path.join(folder_name,"original_data")
     split_vascu_params(vascu_path)
 
 if __name__ == '__main__':

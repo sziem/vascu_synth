@@ -1,21 +1,21 @@
-# change SEED in generate vascu_config.py first and run it
+# Instructions:
+# The easiest way to generate objects is to use ./generate_dataset.sh SEED N_IMAGES
 
-# TODO allow to run this as python 
-# generate_vascu_config.py SEED #TODO make function that takes seed
+# First run python generate_vascu_config.py SEED N_IMAGES
 
-# Do not change as CHANGE_NAME is hardcoded into split_vascu_config.py
-CHANGE_NAME=CHANGE_NAME &&
+# You may change the name of the folder it is saved in by calling ./split_and_run FOLDER_NAME
+FOLDER_NAME="seed"$1
+if [ -z "$FOLDER_NAME" ]; then
+        FOLDER_NAME=CHANGE_NAME;
+   fi
 
-# this should include 
-mkdir -p $CHANGE_NAME/original_data &&
-mv *.txt $CHANGE_NAME/original_data;  # TODO: make arg to shell function
-# this should include image_params.txt, image_names.txt, supply.txt, all demands and all param files
-
-cp run_sequential_*.sh $CHANGE_NAME/original_data &&
-cp VascuSynthPng $CHANGE_NAME/original_data &&  # TODO: change so that I don't need several copies of it
-python split_vascu_config.py &&
-cp *.txt $CHANGE_NAME/original_data;  # not sure this is necessary here
-cd $CHANGE_NAME/original_data &&
+mkdir -p $FOLDER_NAME/original_data &&
+mv *.txt $FOLDER_NAME/original_data; # this should include image_params.txt, image_names.txt, supply.txt, all demands and all param files
+cp run_sequential_*.sh $FOLDER_NAME/original_data &&
+cp VascuSynthPng $FOLDER_NAME/original_data &&  # TODO: change so that I don't need several copies of it
+python split_vascu_config.py $FOLDER_NAME &&
+cp *.txt $FOLDER_NAME/original_data;  # copy the image_names_split etc. files
+cd $FOLDER_NAME/original_data && 
 
 screen -dmS "vascu1" &&
 screen -dmS "vascu2" &&

@@ -20,7 +20,7 @@
 % -------
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
-base_path = '/home/soenke/code/vascu_synth/seed8';
+base_path = '/home/soenke/code/vascu_synth/seed10';
 target_path = base_path; % consider moving this to data-HD right away
 bgr_photons = 10;
 max_photons = 10000;  % high value: high variance of noise, but also high SNR

@@ -8,6 +8,7 @@ Created on Fri Jun 29 15:06:35 2018
 import numpy as np
 from warnings import warn
 import os
+import sys
 
 # %%
 def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000, 
@@ -354,6 +355,7 @@ def clear_all_vascu_files(cpath):
             except Exception as e:
                 raise e
 
+# this does not work well
 def run_vascu_synth():
     # TODO: generalize to arbitrary image_names, param_files, voxel_sizes
     import subprocess
@@ -361,6 +363,8 @@ def run_vascu_synth():
     #, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 # %% main
+
+# run_vascu_synth does not work well
 def _test():
     print("running test: show config and run vascu synth on config")
     # Testing
@@ -410,12 +414,22 @@ def _test():
         
 def main():
     # TODO: run several in parallel with different random seeds (subprocess)
-    seed = 9  # TODO change
+    print("usage with command line: python generate_vascu_config.py seed n_samples(200 by default)") 
+    try:
+        seed = int(sys.argv[1])
+    except IndexError as e:
+        print("you need to specify a seed for the random number generator")
+        raise e
+    # seed = 11  # TODO: change
     # hyperparams:
     # increasing image size and n_term_nodes will increase computational time
     # per sample significantly
-    n_samples = 200
-#    im_sh = 3 * (100,)  # for square images
+    try:
+        n_samples = int(sys.argv[2])
+    except IndexError as e:
+        print("n_samples not provided. Using default value 200")
+        n_samples = 200
+    #    im_sh = 3 * (100,)  # for square images
     # max size is about (1000,1000,100), although increasing box_size can make others possible
     im_sh = (400, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
     n_term_nodes_max=500
