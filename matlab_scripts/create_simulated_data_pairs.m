@@ -20,7 +20,7 @@
 % -------
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
-base_path = '/home/soenke/code/vascu_synth/seed10';
+base_path = '/home/soenke/code/vascu_synth/CHANGE_NAME';
 target_path = base_path; % consider moving this to data-HD right away
 bgr_photons = 10;
 max_photons = 10000;  % high value: high variance of noise, but also high SNR
@@ -36,7 +36,7 @@ wl = 520;  % nm (emission)
 % "super"-resolution!
 % Recommendation: oversample by factor 2
 % in z, this may not always be feasable
-oversampling_factor = 2;
+oversampling_factor = 12;
 
 % SAMPLING:  --> switched to calculating it myself
 % https://svi.nl/NyquistCalculator
@@ -113,7 +113,7 @@ for i = 1:numel(subdirs)
         % above and is only used during psf-generation
         % TODO: oversamp in z might not be necessary
         Method = 'RichardsWolffInt';
-        oversampXY=12;
+        oversampXY=2;
         oversampZ=oversampXY/2;
         oversize=[size(obj,1)*oversampXY, size(obj,2)*oversampXY, size(obj,3)*oversampZ];
         ImageParam = struct('Sampling',[scaleXY/oversampXY scaleXY/oversampXY scaleZ/oversampZ], ...
@@ -140,6 +140,7 @@ for i = 1:numel(subdirs)
     
     % perform imaging
     im = simulate_wf_imaging_poisson(obj, psf, max_photons, bgr_photons, padding);
+    break
     
     % --> TODO: why not image first and then subsample?
     % there was some reason, but I don't remember

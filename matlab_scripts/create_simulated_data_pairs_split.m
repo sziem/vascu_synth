@@ -38,7 +38,7 @@ wl = 520;  % nm (emission)
 % "super"-resolution!
 % Recommendation: oversample by factor 2
 % in z, this may not always be feasable
-oversampling_factor = 2;
+oversampling_factor = 12;
 
 % SAMPLING:  --> switched to calculating it myself
 % https://svi.nl/NyquistCalculator
