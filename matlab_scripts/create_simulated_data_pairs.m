@@ -36,7 +36,7 @@ wl = 520;  % nm (emission)
 % "super"-resolution!
 % Recommendation: oversample by factor 2
 % in z, this may not always be feasable
-oversampling_factor = 12;
+oversampling_factor = 2;
 
 % SAMPLING:  --> switched to calculating it myself
 % https://svi.nl/NyquistCalculator
@@ -113,7 +113,7 @@ for i = 1:numel(subdirs)
         % above and is only used during psf-generation
         % TODO: oversamp in z might not be necessary
         Method = 'RichardsWolffInt';
-        oversampXY=2;
+        oversampXY=12;
         oversampZ=oversampXY/2;
         oversize=[size(obj,1)*oversampXY, size(obj,2)*oversampXY, size(obj,3)*oversampZ];
         ImageParam = struct('Sampling',[scaleXY/oversampXY scaleXY/oversampXY scaleZ/oversampZ], ...
