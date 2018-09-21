@@ -50,9 +50,9 @@ oversampling_factor = 2;
 
 % vascu_synth pixel size: 20 µm squared --> redefine it to scaleZ_ny/2
 % --> also subsample z by factor 4
-for i = 1:length(base_paths)
-    base_path = base_paths{i};
-    disp(base_path)
+for i = 1:len(base_paths)
+    base_path = base_paths(i)
+    disp(base_paths(i))
     for wl = wls
         for max_photons = max_photonss
             disp(wl)
