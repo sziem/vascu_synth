@@ -73,12 +73,13 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
                         np.random.randint(0, im_shape[2]))
         # n_term_nodes
         #np.random.seed(random_seed)
-        n_term_nodes=np.random.randint(0, n_term_nodes_max)
+        n_term_nodes = np.random.randint(0, n_term_nodes_max)
         if n_term_nodes > np.prod(im_shape) / 10:
             warn("with the current setting, more than every tenth pixel " +
                  "will become a terminal node.")
+        n_term_nodes_mean = (n_term_nodes_max - 0)/2
         # perf_pressure
-        perf_pressure_mean= 133000 # µmHg, value from software's example
+        perf_pressure_mean= 133000*n_term_nodes_mean/200 # µmHg, value from software's example.  take higher mean n_term_nodes into account to avoid perf_radius becoming too large
         #np.random.seed(random_seed)
         perf_pressure = np.random.normal(perf_pressure_mean, perf_pressure_mean/6)  # 6-sigma-sure that min is above 0
         if perf_pressure < perf_pressure_mean/20:  # clip to heuristic minimal value that looks nice (considering other params are const)
@@ -88,7 +89,7 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
         # term_pressure divisor:
         # I want an asymmetric pdf with min=1.05, mean ~1.6, max~20 (-> hard to design).
         #np.random.seed(random_seed)
-        term_pressure_divisor_mean = 1.75  # > 1.6 because of asymmetric pdf to avoid too many low values
+        term_pressure_divisor_mean = 1.75  # > 1.6 because of asymmetric pdf to avoid too many low values;
         divisor_min = 1.2 # must be > 1
         term_pressure_divisor = np.random.gamma(1.8, 
             (term_pressure_divisor_mean - divisor_min)/2) + divisor_min  # purely trial and error to design this
