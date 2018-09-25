@@ -8,6 +8,16 @@
 % TODO: view fourier spectrum of obj
 % TODO: maintain this script for generation and specify paths
 % TODO: save tiff instead of mat
+% TODO: adapt dimensions of vascu_synth to NA
+
+% Example critical SAMPLING distances (https://svi.nl/NyquistCalculator)
+% critical sampling for na=1.3, ri=1.33, wl=520
+% x: 100 nm, y: 100 nm, z: 254 nm
+% critical sampling for na=1.2, ri=1.33, wl=520
+% x: 108 nm, y: 108 nm, z: 348 nm
+% critical sampling for na=0.5, ri=1.33, wl=520:
+% x: 260 nm, y: 260 nm, z: 2682 nm
+% --> formulas given in code
 
 %% Set Parameters
 % seed2: 197 png-image-stacks of size 400x400x100 (3 are faulty 24, 25, 87)  % --> indices 117, 118, 187
@@ -29,61 +39,33 @@ wls = [260, 520, 780, 1040];  % nm (emission) default: 520
 
 %% Parameters 2 (only change if you know what you are doing)
 na = 1.064;  % at about 1.064, scaleXY/4 ~ scaleZ_ny/2
-ri = 1.33;  % water 
+ri = 1.33;  % water
+subsampleZ = 1;  % no subsampling in z!
 
-padding = 'same';  % border is largely ignored by unet, so padding is not THAT important
+% border is largely ignored by unet, so padding conv is not THAT important
+padding = 'same';  
 
 % Do NOT use critical sampling to allow deconv to perform
-% "super"-resolution!
-% Recommendation: oversample by factor 2
-% in z, this may not always be feasable
+% "super"-resolution!  Recommendation: oversample by factor 2 in XY.
+% CAREFUL: Input object is subsampled!
+% Sampling in Z is chosen as 1/4 of sampling in XY. 
+% You might need to adjust the code in case of sampling issues
 oversampling_factor = 2;
 
-% SAMPLING:  --> switched to calculating it myself
-% https://svi.nl/NyquistCalculator
-% critical sampling for na=1.3, ri=1.33, wl=520
-% x: 100 nm, y: 100 nm, z: 254 nm
-% critical sampling for na=1.2, ri=1.33, wl=520
-% x: 108 nm, y: 108 nm, z: 348 nm
-% critical sampling for na=0.5, ri=1.33, wl=520:
-% x: 260 nm, y: 260 nm, z: 2682 nm
-
-% vascu_synth pixel size: 20 µm squared --> redefine it to scaleZ_ny/2
-% --> also subsample z by factor 4
-for i = 1:length(base_paths)
-    base_path = base_paths{i};
+for k = 1:length(base_paths)
+    base_path = base_paths{k};
     disp(base_path)
     for wl = wls
         for max_photons = max_photonss
             disp(wl)
-            disp(max_photons)
-            
+            disp(max_photons)            
             target_path = base_path; % consider moving this to data-HD right away
-            
-            %% calculate input to GenericPSFSim and run a simple check for sampling
-            scaleXY_ny = floor(wl / (4*na));
-            scaleZ_ny = floor(wl / (2*ri*(1-cos(asin(na/ri)))));
 
-            scaleXY = scaleXY_ny / oversampling_factor;  
-            scaleZ = scaleXY*4;
-
-            if scaleZ > scaleZ_ny/2
-                warning('you are sampling at less than half Nyquist sampling in z')
-                disp(strcat('scaleZ_ny: ', int2str(scaleZ_ny)))
-                disp(strcat('scaleZ:___ ', int2str(scaleZ)))
-                if scaleZ > scaleZ_ny
-                    error('current scaleZ leads to undersampling')
-                end
-            end
-
-            % scaleZ = scaleXY;  % only in case of isotropic sampling (with original 
-                                 % vascu structures and no subsampling in z)
-
-            %% Load and process obj
             %impath = strcat(base_path, '/', 'original_images');
             source_path = strcat(base_path, '/original_data');
             subdirs = get_subdirs(source_path);
             for i = 1:numel(subdirs)
+                %% Load and process obj
                 sd = subdirs{i}; % image0 ... image99
                 impath = strcat(source_path, '/', sd, '/original_image/');
 
@@ -91,30 +73,48 @@ for i = 1:length(base_paths)
                 % [obj, info] = ReadData3D(strcat(path, '/', fname), false);
                 obj = stack_all_pngs(impath);
                 obj = obj ./max(obj) * 255;
-                %   size(obj);
+                % size(obj);
 
-                % shift x to z
-                obj = shiftdim(obj, 1); % shift x to z
-            %   size(obj);
+                % exchange x and z, because psf will be generated as x,y,z
+                obj = permute(obj, [3,2,1]);
+                % size(obj);
 
-                % subsample along z
-                % my own function filtered_subsample applies low-pass before
-                % subsampling to avoid aliasing
-                obj = filtered_subsample1d(obj, 4, 3);
-            %     size(obj)
-
-                % TODO it is currently not possible to call 
-                  % obj = filtered_subsample(obj, [1 1 4]);
+                % Subsample along z
+                % - Since I also need downsampled objects for unet, I cannot
+                % convolve with psf first and then image.
+                % - My own function filtered_subsample applies low-pass before
+                % subsampling to avoid aliasing.
+                % TODO: it is currently not possible to call 
+                %   obj = filtered_subsample(obj, [1 1 4]);
                 % in analogy with dip_image's subsample function.
-
-                % NOTE: dip_image's 
+                % - NOTE: dip_image's 
                   % subsample(obj, [1 1 4]) 
                 % is equivalent to 
                   % obj = obj(:,:,0:4:end);
                 % and will lead to aliasing
+                obj = filtered_subsample1d(obj, subsampleZ, 3);  % z-dim is 3
+                obj = obj ./max(obj) * 255;
+                % size(obj)
 
-                % create psf
-                if (i == 1)
+                %% create psf
+                if (i == 1) && (k ==1)
+                    % calculate input to GenericPSFSim and run a simple check for sampling
+                    sampXY_ny = floor(wl / (4*na));
+                    sampZ_ny = floor(wl / (2*ri*(1-cos(asin(na/ri)))));
+
+                    % isotropic sampling as in vascu synth for now
+                    % --> will subsample later
+                    sampXY = sampXY_ny / oversampling_factor;  
+                    sampZ = subsampleZ*sampXY;  % sampZ_ny / oversampling factor
+                    if sampZ > sampZ_ny/2
+                        warning('you are sampling at less than half Nyquist sampling in z')
+                        disp(strcat('sampZ_ny: ', int2str(sampZ_ny)))
+                        disp(strcat('sampZ:___ ', int2str(sampZ)))
+                        if sampZ > sampZ_ny
+                            error('current sampZ leads to undersampling')
+                        end
+                    end
+                    
                     % RichardsWolf needs oversampling to avoid dip in sum(psf,[],[1 2]);
                     % Trick: oversample during generation, then subsample after
                     % note that psf generation will take longer with "oversampling"
@@ -123,10 +123,14 @@ for i = 1:length(base_paths)
                     % above and is only used during psf-generation
                     % TODO: oversamp in z might not be necessary
                     Method = 'RichardsWolffInt';
-                    oversampXY=16;
-                    oversampZ=oversampXY/2;
+                    oversampXY=12;
+                    if oversampXY >= (size(obj, 3)/size(obj, 1))
+                        oversampZ = oversampXY/ (size(obj, 3)/size(obj, 1));
+                    else
+                        oversampZ = oversampXY;
+                    end
                     oversize=[size(obj,1)*oversampXY, size(obj,2)*oversampXY, size(obj,3)*oversampZ];
-                    ImageParam = struct('Sampling',[scaleXY/oversampXY scaleXY/oversampXY scaleZ/oversampZ], ...
+                    ImageParam = struct('Sampling',[sampXY/oversampXY sampXY/oversampXY sampZ/oversampZ], ...
                                         'Size',oversize);
                     PSFParam = struct('NA', na, 'n', ri, 'lambdaEm', wl); % 'MinOtf',1.2e-3
 
@@ -136,62 +140,80 @@ for i = 1:length(base_paths)
 
                     % This probably does not work just like this would it?
                     % it could be better to generate 2 psfs for both samplings?
-                    % psf_subsam = psf(:,:,0:4:end);  
-
-                    if usecuda
-                        psf = ConditionalCudaConvert(psf, 0);
-                        % psf_subsam = ConditionalCudaConvert(psf_subsam, 0);
-                    end
+                    % psf_subsam = psf(:,:,0:4:end);
 
                     % checks: sum should be 1
                     % disp(sum(psf))
                     % disp(max(psf))
                 end
 
-                % perform imaging
+                %% perform imaging
                 im = simulate_wf_imaging_poisson(obj, psf, max_photons, bgr_photons, padding);
-
-                % --> TODO: why not image first and then subsample?
-                % there was some reason, but I don't remember
-                % nice: could solve aliasing problem
-                % bad: psf needs extra processing or is it just wrong?
-                % obj = obj(:,:,0:4:end);
-                % im = im(:,:,0:4:end);
-
-                % make ready for storing
-                if usecuda
-                    obj = ConditionalCudaConvert(obj, 0);
-                    im = ConditionalCudaConvert(im, 0);
-                end
-
-                % reduce storage size  -> binaries will be saved!
-                % TODO: check if really 0...255
-                % --> should be the case.  objs are rescaled above, ims are rescaled in
-                % simulate_wf_imaging_poisson
-                obj = uint8(round(obj));
-                im = uint8(round(im));
 
                 %% save as mat-files
                 % TODO: save tiff instead of mat
                 id = strcat('num_photons', num2str(max_photons), '_', ...
                             'bgr', num2str(bgr_photons), '_', padding);
                 psf_id = strcat('na', num2str(na), '_ri', num2str(ri), ...
-                                '_scaleXY', num2str(scaleXY), '_scaleZ', num2str(scaleZ));
+                                '_scaleXY', num2str(sampXY), '_scaleZ', num2str(sampZ));
+                if subsampleZ > 1
+                    target_path = strcat(target_path, '/subsam', num2str(subsam));
+                end
                 save_path = strcat(target_path, '/simulated_data_pairs/', 'poisson/', ...
-                                 id, '/', psf_id, '/', sd, '/');
-
+                                   id, '/', psf_id, '/', sd, '/');
                 if ~exist(save_path, 'dir')
                     mkdir(save_path)
                 end
-
+                    
+                % save psf
+                % TODO consider rescaling and saving uint8
                 if (i == 1)
+                    psf_check = psf;
+                    % save psf as mat-file from float array
+                    % exchange z and x, because unet expects (z,y,x)
+                    % then change back to do the other convolutions
+                    if usecuda
+                        psf = ConditionalCudaConvert(psf, 0);
+                    end
+                    psf = permute(dip_array(psf), [3 2 1]);   % x <-> z
                     save(strcat(save_path,'psf'), 'psf', '-v7')
-                    % save(strcat(savedir,'psf_subsam'), 'psf_subsam', '-v7')
+                    psf = dip_image(permute(psf, [3 2 1]));   % z <-> x
+                    if usecuda
+                        psf = ConditionalCudaConvert(psf, 1);
+                    end
+                    % TODO: make sure psf is the same as before
+                    if psf_check ~= psf
+                        error('psf is not the same after save-conversions')
+                        % TODO delete psf_check here
+                    end
                 end
+                
+                % save obj and im
+                % TODO: make sure it is really 0...255
+                if (min(min(min(round(obj)))) < 0) || (max(max(max(round(obj)))) > 255)
+                    warning(strcat('min(obj): ', num2str(min(min(min(round(obj))))), ...
+                                ', max(obj): ', num2str(max(max(max(round(obj))))), ...
+                                ' not in [0...255].'));
+                end
+                if (min(min(min(round(im)))) < 0) || (max(max(max(round(im)))) > 255)
+                    warning(strcat('min(im): ', num2str(min(min(min(round(im))))), ...
+                                ', max(im): ', num2str(max(max(max(round(im))))), ...
+                                'not in [0...255].'));
+                end
+                if usecuda
+                    obj = ConditionalCudaConvert(obj, 0);
+                    im = ConditionalCudaConvert(im, 0);
+                end
+                obj = uint8(round(obj));
+                im = uint8(round(im));
+                % exchange z and x, because unet expects (z,y,x)
+                obj = permute(obj, [3,2,1]);
+                im = permute(im, [3,2,1]);
+
                 save(strcat(save_path,'obj'), 'obj', '-v7')
                 save(strcat(save_path,'im'),  'im', '-v7')
                 disp(strcat(num2str(i), '/', num2str(numel(subdirs))))
-            end
+            end   
         end
     end
 end

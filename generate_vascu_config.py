@@ -73,11 +73,12 @@ def generate_config_files(n_samples, im_shape, n_term_nodes_max=1000,
                         np.random.randint(0, im_shape[2]))
         # n_term_nodes
         #np.random.seed(random_seed)
+        # n_term_nodes_max = should be scaled depending on image size
         n_term_nodes = np.random.randint(0, n_term_nodes_max)
         if n_term_nodes > np.prod(im_shape) / 10:
             warn("with the current setting, more than every tenth pixel " +
                  "will become a terminal node.")
-        n_term_nodes_mean = (n_term_nodes_max - 0)/2
+        n_term_nodes_mean = (n_term_nodes_max - 0)/2  # mean of uniform distribution is (max-min) / 2
         # perf_pressure
         perf_pressure_mean= 133000*n_term_nodes_mean/200 # µmHg, value from software's example.  take higher mean n_term_nodes into account to avoid perf_radius becoming too large
         #np.random.seed(random_seed)
@@ -432,8 +433,9 @@ def main():
         n_samples = 200
     #    im_sh = 3 * (100,)  # for square images
     # max size is about (1000,1000,100), although increasing box_size can make others possible
-    im_sh = (400, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
-    n_term_nodes_max=500
+    im_sh = (250, 100, 100)  # x, y, z; shape of image, i.e indices 0...99
+    n_term_nodes_max_density = 0.0002  # 800 / np.prod((40,100,100))  -> max 2/10000 pixels are term nodes
+    n_term_nodes_max = int(n_term_nodes_max_density*np.prod(im_sh))  #scale independent on image_size
     box_size=20
     generate_config_files(n_samples, im_sh, n_term_nodes_max, box_size, 
                           min_perf_demand=0.1, voxel_width=0.03,
