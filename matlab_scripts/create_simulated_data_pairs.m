@@ -33,8 +33,8 @@
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
 %base_path = '/home/soenke/code/vascu_synth/CHANGE_NAME';
-base_paths = {'/media/soenke/Data/Soenke/datasets/vascu_synth/small', 
-              '/media/soenke/Data/Soenke/datasets/vascu_synth/new_datasets/small', 
+base_paths = {'/media/soenke/Data/Soenke/datasets/vascu_synth/small', ...
+              '/media/soenke/Data/Soenke/datasets/vascu_synth/new_datasets/small', ...
               '/media/soenke/Data/Soenke/datasets/vascu_synth/big'};
 
 % use max_photons to impact amount of noise
@@ -186,7 +186,7 @@ for k = 1:length(base_paths)
                     psf_id = strcat('wl', num2str(wl), '_na', num2str(na), '_ri', num2str(ri), ...
                                     '_scaleXY', num2str(sampXY), '_scaleZ', num2str(sampZ));
                     if subsampleZ > 1
-                        target_path = strcat(target_path, '/subsam', num2str(subsam));
+                        target_path = strcat(target_path, '/subsam', num2str(subsampleZ));
                     end
                     save_path = strcat(target_path, '/simulated_data_pairs/', 'poisson/', ...
                                        id, '/', psf_id, '/', sd, '/');
@@ -258,10 +258,10 @@ function subdirs = get_subdirs(path)
     subdirs(ismember(subdirs,{'.','..'})) = [];
 end
 
-function fname = get_mhd(path)
-    f = dir(fullfile(path, '*.mhd'));
-    fname = f.name;
-end
+% function fname = get_mhd(path)
+%     f = dir(fullfile(path, '*.mhd'));
+%     fname = f.name;
+% end
 
 function image_stack = stack_all_pngs(path)
     % Get structure array with list of all png files in this directory
@@ -271,7 +271,7 @@ function image_stack = stack_all_pngs(path)
         current_filename = imagefiles(ii).name;
         current_image = readim(strcat(path, current_filename));
         if ii == 1
-             [rows, columns, channels] = size(current_image);  % always treats them as greyvalue
+             [rows, columns, ~] = size(current_image);  % always treats them as greyvalue
              image_stack = newim(rows, columns, nfiles);
         end
         image_stack(:, :, ii-1) = current_image;
