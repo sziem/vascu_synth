@@ -38,7 +38,7 @@ base_paths = {'/media/soenke/Data/Soenke/datasets/vascu_synth/small', ...
               '/media/soenke/Data/Soenke/datasets/vascu_synth/big'};
 
 % use max_photons to impact amount of noise
-max_photonss = [10 100 1000 10000 100000];  % high value: high variance of noise, but also high SNR default: 10000
+max_photonss = [10 50 100 1000 10000 100000];  % high value: high variance of noise, but also high SNR default: 10000
 % bgr --> see loop
 
 % use wl to change amount of blur
@@ -51,7 +51,7 @@ max_photonss = [10 100 1000 10000 100000];  % high value: high variance of noise
 % at this point wraparound will really harm the simulation
 % TODO: quantify size of psf
 wls = [520, 2*520, 4*520, 8*520];  % nm (emission) default: 520. 
-subsampleZs = [1 4];
+subsampleZs = [4 1];
 
 
 %% Parameters 2 (only change if you know what you are doing)
