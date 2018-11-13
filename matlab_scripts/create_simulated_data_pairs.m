@@ -33,12 +33,15 @@
 % seed6 and above: 200 png-images-stacks of size 400x100x100
 % --> use create_simulated_data_pairs.m
 %base_path = '/home/soenke/code/vascu_synth/CHANGE_NAME';
+% new_datasets have size 250x100x100
+% old_datasets have size 400x100x100
 base_paths = {'/media/soenke/Data/Soenke/datasets/vascu_synth/new_datasets/small', ...
-              '/media/soenke/Data/Soenke/datasets/vascu_synth/small', ...
-              '/media/soenke/Data/Soenke/datasets/vascu_synth/big'};
+              '/media/soenke/Data/Soenke/datasets/vascu_synth/old_datasets/small'}; %, ...
+              %'/media/soenke/Data/Soenke/datasets/vascu_synth/big'};
 
 % use max_photons to impact amount of noise
-max_photonss = [10 50 100 1000 10000 100000];  % high value: high variance of noise, but also high SNR default: 10000
+%max_photonss = [1000000];
+max_photonss = [10 50 100 500 1000 10000];  % high value: high variance of noise, but also high SNR default: 10000
 % bgr --> see loop
 
 % use wl to change amount of blur
@@ -50,8 +53,12 @@ max_photonss = [10 50 100 1000 10000 100000];  % high value: high variance of no
 % empirical maximum: approx. 16*first value (psf reaches border)
 % at this point wraparound will really harm the simulation
 % TODO: quantify size of psf
-wls = [520, 2*520, 4*520, 8*520];  % nm (emission) default: 520. 
-subsampleZs = [4 1];
+wls = [520, 1.5*520, 2*520, 4*520, 0.8*520];  % nm (emission) default: 520. 
+%wls = [520, 1.2*520, 1.4*520, 1.6*520, 1.8*520];
+%wls = [520, 0.8*520, 0.6*520];
+
+subsampleZs = [1];  % will only do 1 for new dataset
+const_bgr_intensity = 1;  % added after imaging for numerical reasons
 
 
 %% Parameters 2 (only change if you know what you are doing)
@@ -74,7 +81,7 @@ for k = 1:length(base_paths)
     disp(base_path)
     for subsampleZ = subsampleZs
         % ratio 1:2.5 does not allow sensible subsampling
-        if strcmp(base_path, '/media/soenke/Data/Soenke/datasets/vascu_synth/new_datasets/small') && (subsampleZ > 1)
+        if strcmp(base_path, '/media/soenke/Data/Soenke/datasets/vascu_synth/new_datasets/small/') && (subsampleZ > 1)
             continue
         end
         for wl = wls
@@ -82,7 +89,8 @@ for k = 1:length(base_paths)
                 disp(wl)
                 disp(max_photons)
                 % background influences noise floor.  I had a background of 10 photons at 10000.
-                bgr_photons = uint8(max(1, 10*max_photons/10000));
+                bgr_photons = uint8(min(100, max(1, 10*max_photons/10000)));  % bgr between 1...100
+                noise_bgr_photons = uint8(min(100, max(1, 10*max_photons/10000)));
                 target_path = base_path; % consider moving this to data-HD right away
 
                 %impath = strcat(base_path, '/', 'original_images');
@@ -181,7 +189,7 @@ for k = 1:length(base_paths)
                     end
 
                     %% perform imaging
-                    im = simulate_wf_imaging_poisson(obj, psf, max_photons, bgr_photons, padding);
+                    im = simulate_wf_imaging_poisson(obj, psf, max_photons, bgr_photons, padding, const_bgr_intensity);
 
                     %% save as mat-files
                     % TODO: save tiff instead of mat
@@ -191,8 +199,8 @@ for k = 1:length(base_paths)
                                     '_scaleXY', num2str(sampXY), '_scaleZ', num2str(sampZ));
                     if subsampleZ > 1
                         save_path = strcat(target_path, '/simulated_data_pairs/',... 
-                            '/subsam', num2str(subsampleZ),...
-                            'poisson/', id, '/', psf_id, '/', sd, '/');
+                            'subsam', num2str(subsampleZ),...
+                            '/poisson/', id, '/', psf_id, '/', sd, '/');
                     else
                         save_path = strcat(target_path, '/simulated_data_pairs/',...
                             'poisson/', id, '/', psf_id, '/', sd, '/');                     
