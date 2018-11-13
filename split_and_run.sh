@@ -15,7 +15,7 @@ cp run_sequential_*.sh $FOLDER_NAME/original_data &&
 cp VascuSynthPng $FOLDER_NAME/original_data &&  # TODO: change so that I don't need several copies of it
 python split_vascu_config.py $FOLDER_NAME &&
 cp *.txt $FOLDER_NAME/original_data;  # copy the image_names_split etc. files
-cd $FOLDER_NAME/original_data && 
+cd $FOLDER_NAME/original_data &&
 
 screen -dmS "vascu1" &&
 screen -dmS "vascu2" &&
