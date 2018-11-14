@@ -62,4 +62,4 @@ http://dx.doi.org/10380/3260
 
 We were able to compile successfully with cmake-3.10 and Insight Toolkit (ITK) 4.13 (with compatibility to ITK 3 set in CMake), but there were some issues.  Particularly note the modified CMakeLists.txt.
 
-Test with the configuration provided.
+After compilation, you may test with the configuration provided in 'example_config'.
