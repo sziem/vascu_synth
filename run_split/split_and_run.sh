@@ -1,6 +1,7 @@
 # Instructions:
 # The easiest way to generate objects is to use ./generate_dataset.sh SEED N_IMAGES
 
+# Otherwise:
 # First run python generate_vascu_config.py SEED N_IMAGES
 
 # You may change the name of the folder it is saved in by calling ./split_and_run FOLDER_NAME
@@ -11,10 +12,10 @@ if [ -z "$FOLDER_NAME" ]; then
 
 mkdir -p $FOLDER_NAME/original_data &&
 mv *.txt $FOLDER_NAME/original_data; # this should include image_params.txt, image_names.txt, supply.txt, all demands and all param files
-cp run_sequential_*.sh $FOLDER_NAME/original_data &&
+cp run_split/run_sequential_*.sh $FOLDER_NAME/original_data &&
 cp VascuSynthPng $FOLDER_NAME/original_data &&  # TODO: change so that I don't need several copies of it
-python split_vascu_config.py $FOLDER_NAME &&
-cp *.txt $FOLDER_NAME/original_data;  # copy the image_names_split etc. files
+python python_scripts/split_vascu_config.py $FOLDER_NAME &&
+#cp *.txt $FOLDER_NAME/original_data;  # copy the image_names_split etc. files
 cd $FOLDER_NAME/original_data &&
 
 screen -dmS "vascu1" &&
