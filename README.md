@@ -41,7 +41,7 @@ The matlab-scripts require matlab and the following
 Please contact us, if you are interested in using these scripts.)
 
 ## New recommended pipeline for object generation:
-1. run ./generate_dataset.sh SEED N_IMAGES(200 by default)
+1. run ./generate_dataset.sh SEED N_IMAGES(200 by default)  
 (--> continue with step 6 to use the matlab scripts)
 
 ## Old pipeline for dataset generation:
@@ -49,7 +49,7 @@ Please contact us, if you are interested in using these scripts.)
 2. run generate_vascu_config.py
 3. run split_and_run.sh
 4. wait for run split_and_run.sh to finish
-5. rename CHANGE_NAME-folder, eg. to the number of the random seed used
+5. rename CHANGE_NAME-folder, eg. to the number of the random seed used  
 (--> continue with step 6 to use the matlab scripts))
 
 ## (Using matlab Scripts)
