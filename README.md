@@ -35,7 +35,7 @@ The recommended pipeline for generation of a dataset of pseudo-random objects is
 
 (The script to view the objects in python requires an additional self-written viewer not included here.
 The matlab-scripts require matlab and the following
-* https://github.com/soezie/matlab_tools
+* https://github.com/sziem/matlab_tools
 * Toolboxes from our research group: https://nanoimaging.de/
 * DipImage http://www.diplib.org/
 Please contact us, if you are interested in using these scripts.)
